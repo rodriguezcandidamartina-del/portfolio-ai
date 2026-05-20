@@ -154,34 +154,57 @@ st.markdown("""
 
 PERFILES = {
     "🛡️ Conservador": {
-        "tickers": ["KO", "PEP", "PG", "JNJ", "MCD"],
+        "tickers": [
+            # USA — Defensivas
+            "KO", "PEP", "PG", "JNJ", "MCD", "WMT", "MMM",
+            # Europa
+            "NESN.SW", "NOVN.SW", "OR.PA", "SAN.PA", "ULVR.L", "REP.MC",
+            # América Latina
+            "MELI", "ABEV", "PBR",
+        ],
         "color_accent": "#34d399",
         "badge_class": "badge-conservador",
         "descripcion": (
             "Empresas de gran capitalización con flujos de caja predecibles, "
             "dividendos estables y baja sensibilidad al ciclo económico. "
+            "Incluye líderes defensivos de USA, Europa y América Latina. "
             "Ideal para preservar capital con rendimiento moderado."
         ),
         "palette": px.colors.sequential.Teal,
     },
     "⚖️ Moderado": {
-        "tickers": ["AAPL", "MSFT", "GOOGL", "V", "JPM"],
+        "tickers": [
+            # USA — Tecnología madura
+            "AAPL", "MSFT", "GOOGL", "V", "JPM", "AMZN", "META", "BRK-B",
+            # Europa
+            "SAP", "ASML", "BMW.DE", "MC.PA", "SIE.DE",
+            # Asia
+            "TM", "SONY", "BABA",
+        ],
         "color_accent": "#60a5fa",
         "badge_class": "badge-moderado",
         "descripcion": (
-            "Tecnología madura y líderes de sector con sólidos fundamentos. "
-            "Balance entre crecimiento y estabilidad, con exposición a megatendencias "
-            "como cloud computing, pagos digitales y movilidad."
+            "Tecnología madura y líderes de sector con sólidos fundamentos globales. "
+            "Incluye gigantes de USA, campeones europeos industriales y tecnológicos, "
+            "y grandes corporaciones asiáticas. Balance entre crecimiento y estabilidad."
         ),
         "palette": px.colors.sequential.Blues,
     },
     "🚀 Agresivo": {
-        "tickers": ["TSLA", "NVDA", "AMD", "COIN", "MSTR"],
+        "tickers": [
+            # USA — Alto crecimiento
+            "TSLA", "NVDA", "AMD", "COIN", "MSTR", "PLTR", "SOFI", "RKLB",
+            # Asia — Emergentes
+            "NIO", "XPEV", "SE", "GRAB",
+            # América Latina
+            "NU", "VTEX", "DESP", "GLOB",
+        ],
         "color_accent": "#f87171",
         "badge_class": "badge-agresivo",
         "descripcion": (
             "Activos de alta beta con potencial de retorno extraordinario. "
-            "Exposición a inteligencia artificial, criptoactivos y disrupción tecnológica. "
+            "Exposición a inteligencia artificial, vehículos eléctricos, fintech, "
+            "criptoactivos y empresas emergentes de Asia y América Latina. "
             "Alta volatilidad; requiere horizonte de largo plazo y tolerancia al riesgo."
         ),
         "palette": px.colors.sequential.Reds,
