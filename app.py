@@ -379,7 +379,8 @@ Escribí en español argentino, tono amigable y directo. Sin tecnicismos inneces
 Máximo 450 palabras. Usá emojis con moderación."""
 
     try:
-        genai.configure(api_key=api_key)
+      import os
+genai.configure(api_key=os.environ.get("GOOGLE_API_KEY", api_key))
         modelo    = genai.GenerativeModel("gemini-1.5-flash")
         respuesta = modelo.generate_content(prompt)
         return respuesta.text
