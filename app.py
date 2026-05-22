@@ -380,7 +380,7 @@ Máximo 450 palabras. Usá emojis con moderación."""
 
     try:
       import os
-genai.configure(api_key=os.environ.get("GOOGLE_API_KEY", api_key))
+        genai.configure(api_key=os.environ.get("GOOGLE_API_KEY", api_key))
         modelo    = genai.GenerativeModel("gemini-1.5-flash")
         respuesta = modelo.generate_content(prompt)
         return respuesta.text
