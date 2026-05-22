@@ -5,16 +5,17 @@
 ╚══════════════════════════════════════════════════════════════════╝
 
 Ejecutar con:  streamlit run app.py
-Dependencias:  pip install streamlit yfinance plotly pandas numpy google-generativeai
+Dependencias:  pip install streamlit yfinance plotly pandas numpy groq
 """
 
+import os
 import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-import google.generativeai as genai
+from groq import Groq
 from datetime import datetime, timedelta
 import warnings
 
@@ -197,7 +198,7 @@ PERFILES = {
 }
 
 PERIODOS = {
-    "📅 Último año":    365,
+    "📅 Último año":     365,
     "📅 Últimos 3 años": 365 * 3,
     "📅 Últimos 5 años": 365 * 5,
 }
@@ -212,8 +213,7 @@ DIAS_TRADING_ANUALES = 252
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def descargar_datos(tickers: list, fecha_inicio: str, fecha_fin: str) -> pd.DataFrame:
-    """Descarga precios de cierre ajustado. Excluye tickers que fallen."""
-    datos_validos   = {}
+    datos_validos    = {}
     tickers_fallidos = []
 
     for ticker in tickers:
@@ -262,7 +262,6 @@ def descargar_datos(tickers: list, fecha_inicio: str, fecha_fin: str) -> pd.Data
 
 
 def calcular_metricas(precios: pd.DataFrame) -> pd.DataFrame:
-    """Calcula CAGR, volatilidad, Sharpe y Max Drawdown por acción."""
     if precios.empty:
         return pd.DataFrame()
 
@@ -288,28 +287,26 @@ def calcular_metricas(precios: pd.DataFrame) -> pd.DataFrame:
         max_dd      = ((curva - rolling_max) / rolling_max).min() * 100
 
         metricas[ticker] = {
-            "Ticker":               ticker,
-            "Precio Inicial ($)":   round(float(precio_inicio), 2),
-            "Precio Final ($)":     round(float(precio_fin), 2),
-            "Rend. Total (%)":      round(float(rend_total), 2),
-            "CAGR (%)":             round(float(cagr), 2),
+            "Ticker":                ticker,
+            "Precio Inicial ($)":    round(float(precio_inicio), 2),
+            "Precio Final ($)":      round(float(precio_fin), 2),
+            "Rend. Total (%)":       round(float(rend_total), 2),
+            "CAGR (%)":              round(float(cagr), 2),
             "Volatilidad Anual (%)": round(float(vol), 2),
-            "Ratio Sharpe":         round(float(sharpe), 3),
-            "Max Drawdown (%)":     round(float(max_dd), 2),
+            "Ratio Sharpe":          round(float(sharpe), 3),
+            "Max Drawdown (%)":      round(float(max_dd), 2),
         }
 
     return pd.DataFrame(metricas).T.reset_index(drop=True)
 
 
 def rendimiento_acumulado(precios: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza precios a base 100 desde el primer día."""
     if precios.empty:
         return pd.DataFrame()
     return precios / precios.iloc[0] * 100
 
 
 def top5_por_cagr(df_metricas: pd.DataFrame, df_precios: pd.DataFrame) -> pd.DataFrame:
-    """Retorna el DataFrame de precios filtrado a las 5 acciones con mayor CAGR."""
     df_sorted    = df_metricas.sort_values("CAGR (%)", ascending=False)
     top5_tickers = df_sorted["Ticker"].head(5).tolist()
     columnas_ok  = [t for t in top5_tickers if t in df_precios.columns]
@@ -317,7 +314,7 @@ def top5_por_cagr(df_metricas: pd.DataFrame, df_precios: pd.DataFrame) -> pd.Dat
 
 
 # ─────────────────────────────────────────────
-# FUNCIÓN DE IA — CONCLUSIÓN CON GEMINI
+# FUNCIÓN DE IA — CONCLUSIÓN CON GROQ
 # ─────────────────────────────────────────────
 
 def generar_conclusion(
@@ -327,10 +324,6 @@ def generar_conclusion(
     periodo_seleccionado: str,
     api_key: str,
 ) -> str:
-    """
-    Llama a Gemini Flash (gratis) para generar una conclusión en lenguaje
-    simple interpretando todas las métricas del dashboard.
-    """
     resumen_metricas = []
     for _, row in df_metricas.iterrows():
         try:
@@ -379,11 +372,15 @@ Escribí en español argentino, tono amigable y directo. Sin tecnicismos inneces
 Máximo 450 palabras. Usá emojis con moderación."""
 
     try:
-        key = os.environ.get("GOOGLE_API_KEY", api_key)
-        genai.configure(api_key=key)
-        modelo    = genai.GenerativeModel("gsk-1.5-flash")
-        respuesta = modelo.generate_content(prompt)
-        return respuesta.text
+        key = os.environ.get("GROQ_API_KEY", api_key)
+        cliente = Groq(api_key=key)
+        respuesta = cliente.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1024,
+            temperature=0.7,
+        )
+        return respuesta.choices[0].message.content
     except Exception as e:
         return f"⚠️ No se pudo generar el análisis: {e}"
 
@@ -393,7 +390,6 @@ Máximo 450 palabras. Usá emojis con moderación."""
 # ─────────────────────────────────────────────
 
 def grafico_evolucion(rend_acum: pd.DataFrame, subtitulo: str, color_accent: str) -> go.Figure:
-    """Gráfico de líneas: top 5 acciones vs S&P 500."""
     COLORES = [
         "#60a5fa", "#34d399", "#f87171", "#a78bfa", "#fbbf24",
         "#38bdf8", "#fb923c", "#e879f9", "#4ade80", "#facc15",
@@ -404,8 +400,8 @@ def grafico_evolucion(rend_acum: pd.DataFrame, subtitulo: str, color_accent: str
     for i, ticker in enumerate(rend_acum.columns):
         es_benchmark = ticker == "S&P 500"
         color = "rgba(148,163,184,0.7)" if es_benchmark else COLORES[i % len(COLORES)]
-        dash  = "dot"    if es_benchmark else "solid"
-        width = 1.5      if es_benchmark else 2.5
+        dash  = "dot"  if es_benchmark else "solid"
+        width = 1.5    if es_benchmark else 2.5
 
         fig.add_trace(go.Scatter(
             x=rend_acum.index,
@@ -465,7 +461,6 @@ def grafico_evolucion(rend_acum: pd.DataFrame, subtitulo: str, color_accent: str
 
 
 def grafico_barras_metricas(df_metricas: pd.DataFrame, metrica: str, color_accent: str) -> go.Figure:
-    """Barras horizontales para comparar una métrica entre acciones."""
     df_sorted = df_metricas.sort_values(metrica, ascending=True)
     valores   = df_sorted[metrica].astype(float)
     colores   = ["#34d399" if v >= 0 else "#f87171" for v in valores]
@@ -500,12 +495,11 @@ def grafico_barras_metricas(df_metricas: pd.DataFrame, metrica: str, color_accen
 
 
 def grafico_scatter_riesgo_retorno(df_metricas: pd.DataFrame, color_accent: str) -> go.Figure:
-    """Scatter Riesgo vs. Retorno con tamaño proporcional al Sharpe."""
     df = df_metricas.copy()
     for col in ["Ratio Sharpe", "CAGR (%)", "Volatilidad Anual (%)"]:
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-    tamanios = (df["Ratio Sharpe"].abs() * 30 + 12).clip(upper=60)
+    tamanios        = (df["Ratio Sharpe"].abs() * 30 + 12).clip(upper=60)
     COLORES_SCATTER = ["#60a5fa", "#34d399", "#f87171", "#a78bfa", "#fbbf24"]
 
     fig = go.Figure()
@@ -601,20 +595,19 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # ── API Key de Gemini ──
     st.markdown("**🤖 Análisis con IA**")
-    gemini_api_key = st.text_input(
-        "API Key de Gemini (gratis):",
+    groq_api_key = st.text_input(
+        "API Key de Groq (gratis):",
         type="password",
-        placeholder="Pegá tu key acá",
-        help="Obtenela gratis en aistudio.google.com sin tarjeta de crédito.",
+        placeholder="Pegá tu key acá  (gsk_...)",
+        help="Obtenela gratis en console.groq.com sin tarjeta de crédito.",
         label_visibility="collapsed",
     )
     st.markdown("""
-    <div style='font-size:0.72rem; color:#334155; line-height:1.5;'>
+    <div style='font-size:0.72rem; color:#334155; line-height:1.6;'>
         🔑 Conseguí tu key gratis en<br>
-        <a href='https://aistudio.google.com' target='_blank'
-           style='color:#60a5fa;'>aistudio.google.com</a>
+        <a href='https://console.groq.com' target='_blank'
+           style='color:#60a5fa;'>console.groq.com</a>
     </div>
     """, unsafe_allow_html=True)
 
@@ -631,12 +624,12 @@ with st.sidebar:
 # PARÁMETROS FINALES
 # ─────────────────────────────────────────────
 
-perfil_info        = PERFILES[perfil_seleccionado]
-dias_atras         = PERIODOS[periodo_seleccionado]
-fecha_fin          = datetime.today()
-fecha_inicio       = fecha_fin - timedelta(days=dias_atras)
-fecha_inicio_str   = fecha_inicio.strftime("%Y-%m-%d")
-fecha_fin_str      = fecha_fin.strftime("%Y-%m-%d")
+perfil_info      = PERFILES[perfil_seleccionado]
+dias_atras       = PERIODOS[periodo_seleccionado]
+fecha_fin        = datetime.today()
+fecha_inicio     = fecha_fin - timedelta(days=dias_atras)
+fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
+fecha_fin_str    = fecha_fin.strftime("%Y-%m-%d")
 
 tickers_finales = (
     [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
@@ -692,7 +685,6 @@ if df_precios.empty:
 
 df_metricas = calcular_metricas(df_precios)
 
-# Columnas numéricas
 cols_num = ["Precio Inicial ($)", "Precio Final ($)", "Rend. Total (%)",
             "CAGR (%)", "Volatilidad Anual (%)", "Ratio Sharpe", "Max Drawdown (%)"]
 for col in cols_num:
@@ -709,7 +701,6 @@ with st.spinner("⏳ Descargando S&P 500 como benchmark..."):
     if not df_spy.empty:
         df_spy = df_spy.rename(columns={"^GSPC": "S&P 500"})
 
-# Combinamos top 5 + S&P 500 para el gráfico
 df_para_grafico = (
     pd.concat([df_top5, df_spy], axis=1).dropna(how="all")
     if not df_spy.empty else df_top5
@@ -724,16 +715,16 @@ df_rend_acum = rendimiento_acumulado(df_para_grafico)
 st.markdown("### 📊 Métricas del Portafolio")
 
 ticker_estrella = df_metricas.loc[df_metricas["CAGR (%)"].idxmax(), "Ticker"]
-rend_prom  = df_metricas["Rend. Total (%)"].mean()
-cagr_prom  = df_metricas["CAGR (%)"].mean()
-vol_prom   = df_metricas["Volatilidad Anual (%)"].mean()
-sharpe_prom = df_metricas["Ratio Sharpe"].mean()
-dd_max     = df_metricas["Max Drawdown (%)"].min()
+rend_prom       = df_metricas["Rend. Total (%)"].mean()
+cagr_prom       = df_metricas["CAGR (%)"].mean()
+vol_prom        = df_metricas["Volatilidad Anual (%)"].mean()
+sharpe_prom     = df_metricas["Ratio Sharpe"].mean()
+dd_max          = df_metricas["Max Drawdown (%)"].min()
 
 col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
-    st.metric("🏆 Mejor Acción", ticker_estrella,
-              delta=f"CAGR: {df_metricas.loc[df_metricas['Ticker']==ticker_estrella, 'CAGR (%)'].values[0]:+.1f}%")
+    cagr_estrella = df_metricas.loc[df_metricas["Ticker"] == ticker_estrella, "CAGR (%)"].values[0]
+    st.metric("🏆 Mejor Acción", ticker_estrella, delta=f"CAGR: {cagr_estrella:+.1f}%")
 with col2:
     st.metric("📈 Rend. Promedio", f"{rend_prom:+.1f}%", delta=f"CAGR: {cagr_prom:+.1f}%")
 with col3:
@@ -747,7 +738,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 2: GRÁFICO DE EVOLUCIÓN — TOP 5 vs S&P 500
+# SECCIÓN 2: GRÁFICO TOP 5 vs S&P 500
 # ─────────────────────────────────────────────
 
 st.markdown("### 📉 Evolución Acumulada — Top 5 vs S&P 500")
@@ -761,7 +752,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-subtitulo    = f"Top 5: {', '.join(top5_lista)} vs S&P 500"
+subtitulo     = f"Top 5: {', '.join(top5_lista)} vs S&P 500"
 fig_evolucion = grafico_evolucion(df_rend_acum, subtitulo, color_accent)
 st.plotly_chart(fig_evolucion, use_container_width=True)
 
@@ -784,9 +775,9 @@ def colorear_tabla(df):
     def color_sharpe(val):
         try:
             v = float(val)
-            if v >= 1.0:   return "color: #34d399; font-weight: 600"
-            elif v >= 0:   return "color: #fbbf24"
-            else:          return "color: #f87171"
+            if v >= 1.0:  return "color: #34d399; font-weight: 600"
+            elif v >= 0:  return "color: #fbbf24"
+            else:         return "color: #f87171"
         except Exception:
             return ""
 
@@ -816,7 +807,7 @@ st.dataframe(colorear_tabla(df_metricas), use_container_width=True, hide_index=T
 
 st.markdown("""
 <div style='font-size:0.75rem; color:#334155; margin-top:4px;'>
-    ℹ️ CAGR = Tasa de crecimiento anual compuesto · Sharpe calculado con Rf = 0% · 
+    ℹ️ CAGR = Tasa de crecimiento anual compuesto · Sharpe calculado con Rf = 0% ·
     Drawdown medido sobre retornos ajustados.
 </div>
 """, unsafe_allow_html=True)
@@ -893,7 +884,7 @@ if len(df_precios.columns) > 1:
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 6: CONCLUSIÓN CON IA (GEMINI)
+# SECCIÓN 6: CONCLUSIÓN CON IA (GROQ)
 # ─────────────────────────────────────────────
 
 st.markdown("---")
@@ -901,7 +892,7 @@ st.markdown("### 🤖 Conclusión e Interpretación con IA")
 
 st.markdown("""
 <div class='info-card'>
-    Esta sección usa <b style='color:#e2e8f0;'>Inteligencia Artificial (Gemini)</b> para leer
+    Esta sección usa <b style='color:#e2e8f0;'>Inteligencia Artificial (Groq + LLaMA)</b> para leer
     todos los gráficos y métricas del dashboard y explicarte en lenguaje simple
     <b style='color:#e2e8f0;'>dónde conviene invertir según tu perfil de riesgo</b>,
     con ejemplos concretos y sin tecnicismos.
@@ -909,10 +900,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if st.button("✨ Generar análisis con IA", use_container_width=False):
-    if not gemini_api_key or not gemini_api_key.strip():
+    if not groq_api_key or not groq_api_key.strip():
         st.warning(
-            "⚠️ Ingresá tu API Key de Gemini en el panel izquierdo. "
-            "Es gratis y la conseguís en aistudio.google.com",
+            "⚠️ Ingresá tu API Key de Groq en el panel izquierdo. "
+            "Es gratis y la conseguís en console.groq.com",
             icon="🔑",
         )
     else:
@@ -922,24 +913,14 @@ if st.button("✨ Generar análisis con IA", use_container_width=False):
                 df_metricas=df_metricas,
                 top5_tickers=top5_lista,
                 periodo_seleccionado=periodo_seleccionado,
-                api_key=gemini_api_key.strip(),
+                api_key=groq_api_key.strip(),
             )
 
-        # Convertimos el markdown de Gemini a HTML básico para mostrarlo bien
-        conclusion_html = (
-            conclusion
-            .replace("**", "<b>", 1)
-        )
-        # Renderizamos con st.markdown para que interprete el formato de Gemini
-        st.markdown(f"""
-        <div class='conclusion-card'>
-        </div>
-        """, unsafe_allow_html=True)
         st.markdown(conclusion)
 
         st.markdown("""
         <div style='font-size:0.72rem; color:#334155; margin-top:8px; text-align:right;'>
-            Análisis generado por Gemini AI (Google) · Solo con fines educativos ·
+            Análisis generado por Groq AI (LLaMA) · Solo con fines educativos ·
             No constituye asesoramiento financiero profesional.
         </div>
         """, unsafe_allow_html=True)
