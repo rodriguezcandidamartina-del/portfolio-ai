@@ -375,7 +375,7 @@ Máximo 450 palabras. Usá emojis con moderación."""
         key = os.environ.get("GROQ_API_KEY", api_key)
         cliente = Groq(api_key=key)
         respuesta = cliente.chat.completions.create(
-            model="llama3-8b-8192",
+            model="openai/gpt-oss-20b",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1024,
             temperature=0.7,
