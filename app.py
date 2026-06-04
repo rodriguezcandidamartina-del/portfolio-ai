@@ -126,6 +126,17 @@ st.markdown("""
         line-height: 1.6;
     }
 
+    .beta-card {
+        background: rgba(15,23,42,0.7);
+        border-left: 3px solid #a78bfa;
+        border-radius: 0 10px 10px 0;
+        padding: 14px 18px;
+        margin: 12px 0;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        line-height: 1.7;
+    }
+
     .conclusion-card {
         background: rgba(15,23,42,0.85);
         border: 1px solid rgba(99,179,237,0.25);
@@ -144,54 +155,142 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────
-# CONSTANTES Y PERFILES
+# UNIVERSO DE ACCIONES OPERABLES DESDE ARGENTINA
+#
+# Criterio: CEDEARs disponibles en el mercado
+# argentino (BYMA) + principales acciones del
+# panel Merval. Todos los tickers corresponden
+# a sus símbolos en Yahoo Finance (mercado USA
+# o local según disponibilidad).
+#
+# Fuente de referencia: listado de CEDEARs BYMA
+# y panel líder Merval (actualizado 2024).
 # ─────────────────────────────────────────────
 
-PERFILES = {
+UNIVERSO_ARGENTINA = {
+    # ── Tecnología ──────────────────────────────
+    "AAPL":   "Apple",
+    "MSFT":   "Microsoft",
+    "GOOGL":  "Alphabet",
+    "META":   "Meta",
+    "AMZN":   "Amazon",
+    "NVDA":   "NVIDIA",
+    "AMD":    "AMD",
+    "INTC":   "Intel",
+    "CRM":    "Salesforce",
+    "ORCL":   "Oracle",
+    "IBM":    "IBM",
+    "QCOM":   "Qualcomm",
+    "ADBE":   "Adobe",
+    "PYPL":   "PayPal",
+    "UBER":   "Uber",
+    "NFLX":   "Netflix",
+    "SPOT":   "Spotify",
+    "TSLA":   "Tesla",
+    "COIN":   "Coinbase",
+    "MELI":   "MercadoLibre",
+    "GLOB":   "Globant",
+    "VTEX":   "VTEX",
+    # ── Finanzas ────────────────────────────────
+    "JPM":    "JPMorgan Chase",
+    "BAC":    "Bank of America",
+    "GS":     "Goldman Sachs",
+    "MS":     "Morgan Stanley",
+    "V":      "Visa",
+    "MA":     "Mastercard",
+    "AXP":    "American Express",
+    "BRK-B":  "Berkshire Hathaway",
+    "NU":     "Nubank",
+    # ── Consumo / Defensivo ──────────────────────
+    "KO":     "Coca-Cola",
+    "PEP":    "PepsiCo",
+    "PG":     "Procter & Gamble",
+    "MCD":    "McDonald's",
+    "WMT":    "Walmart",
+    "COST":   "Costco",
+    "NKE":    "Nike",
+    "DIS":    "Disney",
+    # ── Salud ───────────────────────────────────
+    "JNJ":    "Johnson & Johnson",
+    "PFE":    "Pfizer",
+    "MRK":    "Merck",
+    "ABBV":   "AbbVie",
+    "LLY":    "Eli Lilly",
+    # ── Energía / Materiales ─────────────────────
+    "XOM":    "ExxonMobil",
+    "CVX":    "Chevron",
+    "COP":    "ConocoPhillips",
+    # ── Industrial / Aero ────────────────────────
+    "BA":     "Boeing",
+    "CAT":    "Caterpillar",
+    "MMM":    "3M",
+    "GE":     "GE Aerospace",
+    # ── Panel Merval (acciones argentinas) ───────
+    "YPF":    "YPF S.A.",
+    "PAM":    "Pampa Energía",
+    "GGAL":   "Grupo Financiero Galicia",
+    "BMA":    "Banco Macro",
+    "SUPV":   "Grupo Supervielle",
+    "LOMA":   "Loma Negra",
+    "CEPU":   "Central Puerto",
+    "IRCP":   "IRSA Propiedades",
+    "CRESY":  "Cresud",
+    "DESP":   "Despegar",
+    "ABEV":   "Ambev",
+    "PBR":    "Petrobras",
+}
+
+# ─────────────────────────────────────────────
+# CRITERIOS DE CLASIFICACIÓN POR BETA
+#
+# Beta mide la sensibilidad del activo respecto
+# al mercado (S&P 500 = Beta 1.0):
+#   Beta < 0.8  → menor riesgo sistemático  → Conservador
+#   0.8 ≤ Beta ≤ 1.2 → riesgo de mercado   → Moderado
+#   Beta > 1.2  → mayor riesgo sistemático  → Agresivo
+#
+# Si yfinance no reporta beta para un ticker,
+# se calcula manualmente con retornos históricos
+# vs. S&P 500 en el período seleccionado.
+# ─────────────────────────────────────────────
+
+BETA_UMBRALES = {
+    "🛡️ Conservador": {"max": 0.8,  "min": 0.0},
+    "⚖️ Moderado":    {"max": 1.2,  "min": 0.8},
+    "🚀 Agresivo":    {"max": 99.0, "min": 1.2},
+}
+
+PERFILES_META = {
     "🛡️ Conservador": {
-        "tickers": [
-            "KO", "PEP", "PG", "JNJ", "MCD", "WMT", "MMM",
-            "NESN.SW", "NOVN.SW", "OR.PA", "SAN.PA", "ULVR.L", "REP.MC",
-            "MELI", "ABEV", "PBR",
-        ],
         "color_accent": "#34d399",
-        "badge_class": "badge-conservador",
+        "badge_class":  "badge-conservador",
         "descripcion": (
-            "Empresas de gran capitalización con flujos de caja predecibles, "
-            "dividendos estables y baja sensibilidad al ciclo económico. "
-            "Incluye líderes defensivos de USA, Europa y América Latina. "
-            "Ideal para preservar capital con rendimiento moderado."
+            "Empresas con Beta < 0.8: menor sensibilidad a las caídas del mercado. "
+            "Generalmente defensivas, con dividendos estables y flujos de caja predecibles. "
+            "Seleccionadas dinámicamente del universo de CEDEARs y acciones argentinas "
+            "según su beta reportada por Yahoo Finance."
         ),
         "palette": px.colors.sequential.Teal,
     },
     "⚖️ Moderado": {
-        "tickers": [
-            "AAPL", "MSFT", "GOOGL", "V", "JPM", "AMZN", "META", "BRK-B",
-            "SAP", "ASML", "BMW.DE", "MC.PA", "SIE.DE",
-            "TM", "SONY", "BABA",
-        ],
         "color_accent": "#60a5fa",
-        "badge_class": "badge-moderado",
+        "badge_class":  "badge-moderado",
         "descripcion": (
-            "Tecnología madura y líderes de sector con sólidos fundamentos globales. "
-            "Incluye gigantes de USA, campeones europeos industriales y tecnológicos, "
-            "y grandes corporaciones asiáticas. Balance entre crecimiento y estabilidad."
+            "Empresas con Beta entre 0.8 y 1.2: comportamiento similar al mercado general. "
+            "Balance entre crecimiento y estabilidad. "
+            "Seleccionadas dinámicamente del universo de CEDEARs y acciones argentinas "
+            "según su beta reportada por Yahoo Finance."
         ),
         "palette": px.colors.sequential.Blues,
     },
     "🚀 Agresivo": {
-        "tickers": [
-            "TSLA", "NVDA", "AMD", "COIN", "MSTR", "PLTR", "SOFI", "RKLB",
-            "NIO", "XPEV", "SE", "GRAB",
-            "NU", "VTEX", "DESP", "GLOB",
-        ],
         "color_accent": "#f87171",
-        "badge_class": "badge-agresivo",
+        "badge_class":  "badge-agresivo",
         "descripcion": (
-            "Activos de alta beta con potencial de retorno extraordinario. "
-            "Exposición a inteligencia artificial, vehículos eléctricos, fintech, "
-            "criptoactivos y empresas emergentes de Asia y América Latina. "
-            "Alta volatilidad; requiere horizonte de largo plazo y tolerancia al riesgo."
+            "Empresas con Beta > 1.2: alta sensibilidad al ciclo de mercado. "
+            "Mayor potencial de retorno con mayor volatilidad. "
+            "Seleccionadas dinámicamente del universo de CEDEARs y acciones argentinas "
+            "según su beta reportada por Yahoo Finance."
         ),
         "palette": px.colors.sequential.Reds,
     },
@@ -205,11 +304,146 @@ PERIODOS = {
 
 TASA_LIBRE_RIESGO    = 0.0
 DIAS_TRADING_ANUALES = 252
+MIN_ACCIONES_PERFIL  = 6   # mínimo de acciones a mostrar por perfil
+MAX_ACCIONES_PERFIL  = 16  # máximo para no sobrecargar el dashboard
 
 
 # ─────────────────────────────────────────────
 # FUNCIONES DE DATOS
 # ─────────────────────────────────────────────
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def obtener_beta_yahoo(ticker: str) -> float | None:
+    """
+    Intenta obtener la beta directamente desde
+    el campo 'beta' del info de Yahoo Finance.
+    Retorna None si no está disponible.
+    """
+    try:
+        info = yf.Ticker(ticker).info
+        beta = info.get("beta", None)
+        if beta is not None and not np.isnan(float(beta)):
+            return float(beta)
+    except Exception:
+        pass
+    return None
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def calcular_beta_manual(
+    ticker: str,
+    fecha_inicio: str,
+    fecha_fin: str,
+) -> float | None:
+    """
+    Calcula beta manualmente usando regresión lineal
+    entre los retornos diarios del activo y el S&P 500.
+    Beta = Cov(Ri, Rm) / Var(Rm)
+    """
+    try:
+        df_activo = yf.download(
+            ticker, start=fecha_inicio, end=fecha_fin,
+            auto_adjust=True, progress=False, timeout=15,
+        )
+        df_spy = yf.download(
+            "^GSPC", start=fecha_inicio, end=fecha_fin,
+            auto_adjust=True, progress=False, timeout=15,
+        )
+        if df_activo.empty or df_spy.empty:
+            return None
+
+        # Normalizar columnas MultiIndex si aplica
+        for df in [df_activo, df_spy]:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
+        col_a = "Close" if "Close" in df_activo.columns else "Adj Close"
+        col_s = "Close" if "Close" in df_spy.columns    else "Adj Close"
+
+        ret_a   = df_activo[col_a].squeeze().pct_change().dropna()
+        ret_spy = df_spy[col_s].squeeze().pct_change().dropna()
+
+        df_combined = pd.DataFrame({"activo": ret_a, "spy": ret_spy}).dropna()
+        if len(df_combined) < 30:
+            return None
+
+        cov = df_combined["activo"].cov(df_combined["spy"])
+        var = df_combined["spy"].var()
+        return float(cov / var) if var > 0 else None
+
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def seleccionar_tickers_por_beta(
+    perfil: str,
+    fecha_inicio: str,
+    fecha_fin: str,
+) -> tuple[list[str], dict[str, float]]:
+    """
+    Recorre el universo UNIVERSO_ARGENTINA, obtiene la beta
+    de cada ticker (primero desde Yahoo Finance; si no está
+    disponible la calcula manualmente) y filtra según los
+    umbrales del perfil seleccionado.
+
+    Retorna:
+        - Lista de tickers que cumplen el criterio de beta
+        - Diccionario {ticker: beta} para mostrar en el dashboard
+    """
+    umbral     = BETA_UMBRALES[perfil]
+    beta_min   = umbral["min"]
+    beta_max   = umbral["max"]
+    tickers_ok = {}
+
+    progress_bar = st.progress(0, text="🔍 Clasificando acciones por Beta...")
+    total        = len(UNIVERSO_ARGENTINA)
+
+    for i, ticker in enumerate(UNIVERSO_ARGENTINA.keys()):
+        progress_bar.progress(
+            (i + 1) / total,
+            text=f"🔍 Clasificando por Beta: analizando **{ticker}** ({i+1}/{total})",
+        )
+
+        # 1° intento: beta de Yahoo Finance
+        beta = obtener_beta_yahoo(ticker)
+
+        # 2° intento: cálculo manual
+        if beta is None:
+            beta = calcular_beta_manual(ticker, fecha_inicio, fecha_fin)
+
+        if beta is None:
+            continue
+
+        if beta_min <= beta < beta_max:
+            tickers_ok[ticker] = round(beta, 3)
+
+        # Detenerse cuando ya tenemos suficientes
+        if len(tickers_ok) >= MAX_ACCIONES_PERFIL:
+            break
+
+    progress_bar.empty()
+
+    # Si no alcanzamos el mínimo, relajamos los umbrales ±0.2
+    if len(tickers_ok) < MIN_ACCIONES_PERFIL:
+        st.warning(
+            f"⚠️ Solo se encontraron {len(tickers_ok)} acciones con beta en el rango "
+            f"[{beta_min:.1f}, {beta_max:.1f}). Ampliando rango ±0.2...",
+            icon="⚠️",
+        )
+        for ticker in UNIVERSO_ARGENTINA.keys():
+            if ticker in tickers_ok:
+                continue
+            beta = obtener_beta_yahoo(ticker) or calcular_beta_manual(ticker, fecha_inicio, fecha_fin)
+            if beta is None:
+                continue
+            if (beta_min - 0.2) <= beta < (beta_max + 0.2):
+                tickers_ok[ticker] = round(beta, 3)
+            if len(tickers_ok) >= MAX_ACCIONES_PERFIL:
+                break
+
+    return list(tickers_ok.keys()), tickers_ok
+
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def descargar_datos(tickers: list, fecha_inicio: str, fecha_fin: str) -> pd.DataFrame:
@@ -248,8 +482,7 @@ def descargar_datos(tickers: list, fecha_inicio: str, fecha_fin: str) -> pd.Data
 
     if tickers_fallidos:
         st.warning(
-            f"⚠️ Sin datos para: **{', '.join(tickers_fallidos)}**. "
-            "Puede deberse a conectividad o ticker no disponible.",
+            f"⚠️ Sin datos de precios para: **{', '.join(tickers_fallidos)}**.",
             icon="⚠️",
         )
 
@@ -261,7 +494,7 @@ def descargar_datos(tickers: list, fecha_inicio: str, fecha_fin: str) -> pd.Data
     return df_combined
 
 
-def calcular_metricas(precios: pd.DataFrame) -> pd.DataFrame:
+def calcular_metricas(precios: pd.DataFrame, betas: dict) -> pd.DataFrame:
     if precios.empty:
         return pd.DataFrame()
 
@@ -288,6 +521,8 @@ def calcular_metricas(precios: pd.DataFrame) -> pd.DataFrame:
 
         metricas[ticker] = {
             "Ticker":                ticker,
+            "Nombre":                UNIVERSO_ARGENTINA.get(ticker, ticker),
+            "Beta":                  betas.get(ticker, "—"),
             "Precio Inicial ($)":    round(float(precio_inicio), 2),
             "Precio Final ($)":      round(float(precio_fin), 2),
             "Rend. Total (%)":       round(float(rend_total), 2),
@@ -322,13 +557,16 @@ def generar_conclusion(
     df_metricas: pd.DataFrame,
     top5_tickers: list,
     periodo_seleccionado: str,
+    betas: dict,
     api_key: str,
 ) -> str:
     resumen_metricas = []
     for _, row in df_metricas.iterrows():
         try:
+            beta_val = betas.get(row["Ticker"], "N/D")
             resumen_metricas.append(
-                f"- {row['Ticker']}: "
+                f"- {row['Ticker']} ({UNIVERSO_ARGENTINA.get(row['Ticker'], row['Ticker'])}): "
+                f"Beta {beta_val}, "
                 f"CAGR {float(row['CAGR (%)']):+.1f}%, "
                 f"Volatilidad {float(row['Volatilidad Anual (%)'])::.1f}%, "
                 f"Sharpe {float(row['Ratio Sharpe']):.2f}, "
@@ -343,6 +581,11 @@ def generar_conclusion(
     prompt = f"""Sos un asesor financiero educativo que explica inversiones
 en lenguaje muy simple para alguien que nunca invirtió en su vida.
 
+Contexto importante: todas las acciones analizadas son operables desde Argentina
+mediante CEDEARs (Certificados de Depósito Argentinos) o acciones del panel Merval.
+Las acciones fueron seleccionadas automáticamente usando el criterio de Beta:
+el perfil {perfil_nombre} corresponde al rango de Beta definido para ese nivel de riesgo.
+
 Perfil de riesgo analizado: {perfil_nombre}
 Período: {periodo_seleccionado}
 Las 5 mejores acciones del perfil (por CAGR): {top5_texto}
@@ -353,29 +596,29 @@ Métricas completas del perfil:
 Escribí una conclusión clara que incluya estas 5 secciones con sus títulos en negrita:
 
 **1. ¿Qué significa este perfil?**
-Explicá en 2 oraciones simples qué tipo de inversor elige este perfil.
+Explicá en 2 oraciones simples qué tipo de inversor elige este perfil y qué significa la Beta.
 
 **2. ¿Qué nos dicen los números?**
 Interpretá CAGR, volatilidad y Sharpe como si hablaras con alguien de 15 años.
 Usá los números reales del análisis con ejemplos concretos tipo "si hubieras invertido $1000..."
 
-**3. Las 3 mejores opciones para invertir hoy**
-Para cada una explicá por qué en base a los datos. Sé específico con los números.
+**3. Las 3 mejores opciones para invertir hoy desde Argentina**
+Para cada una explicá por qué en base a los datos y mencioná que se puede operar como CEDEAR.
 
 **4. ⚠️ Qué tener en cuenta antes de invertir**
-2 advertencias importantes en lenguaje simple y directo.
+2 advertencias importantes en lenguaje simple, incluyendo el riesgo del tipo de cambio al operar CEDEARs.
 
 **5. Conclusión final**
 Una sola oración, como si le dijeras a un amigo dónde poner su plata hoy.
 
 Escribí en español argentino, tono amigable y directo. Sin tecnicismos innecesarios.
-Máximo 450 palabras. Usá emojis con moderación."""
+Máximo 500 palabras. Usá emojis con moderación."""
 
     try:
         key = os.environ.get("GROQ_API_KEY", api_key)
         cliente = Groq(api_key=key)
         respuesta = cliente.chat.completions.create(
-            model="openai/gpt-oss-20b",
+            model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=1024,
             temperature=0.7,
@@ -388,6 +631,69 @@ Máximo 450 palabras. Usá emojis con moderación."""
 # ─────────────────────────────────────────────
 # VISUALIZACIONES
 # ─────────────────────────────────────────────
+
+def grafico_beta_perfil(betas: dict, umbral_min: float, umbral_max: float, color_accent: str) -> go.Figure:
+    """
+    Gráfico de barras horizontal mostrando la beta de cada
+    acción seleccionada, con líneas de referencia de los umbrales.
+    """
+    tickers = list(betas.keys())
+    valores = list(betas.values())
+    colores = [color_accent] * len(tickers)
+
+    fig = go.Figure(go.Bar(
+        x=valores,
+        y=tickers,
+        orientation="h",
+        marker_color=colores,
+        marker_line_width=0,
+        opacity=0.85,
+        text=[f"β {v:.2f}" for v in valores],
+        textposition="outside",
+        textfont=dict(family="DM Mono", size=12, color="#e2e8f0"),
+        hovertemplate="<b>%{y}</b><br>Beta: <b>%{x:.3f}</b><extra></extra>",
+    ))
+
+    # Líneas de umbral
+    for x_val, label, color in [
+        (umbral_min, f"β mín = {umbral_min}", "rgba(251,191,36,0.6)"),
+        (umbral_max if umbral_max < 10 else None, f"β máx = {umbral_max}", "rgba(248,113,113,0.6)"),
+        (1.0, "β mercado = 1.0", "rgba(148,163,184,0.4)"),
+    ]:
+        if x_val is not None:
+            fig.add_vline(
+                x=x_val,
+                line_dash="dot",
+                line_color=color,
+                annotation_text=label,
+                annotation_font_color=color,
+                annotation_font_size=11,
+                annotation_position="top",
+            )
+
+    fig.update_layout(
+        title=dict(
+            text="<b>Beta por Acción</b>  ·  Criterio de selección del perfil",
+            font=dict(size=14, color="#e2e8f0", family="Space Grotesk"),
+            x=0.01,
+        ),
+        paper_bgcolor="rgba(10,14,26,0)",
+        plot_bgcolor="rgba(15,23,42,0.6)",
+        font=dict(family="Space Grotesk", color="#94a3b8"),
+        xaxis=dict(
+            title="Beta (β)",
+            gridcolor="rgba(99,179,237,0.08)",
+            tickfont=dict(family="DM Mono", size=11),
+        ),
+        yaxis=dict(
+            tickfont=dict(size=12, color="#e2e8f0"),
+            gridcolor="rgba(99,179,237,0.05)",
+        ),
+        height=max(280, len(tickers) * 28),
+        margin=dict(l=0, r=80, t=50, b=10),
+    )
+    return fig
+
 
 def grafico_evolucion(rend_acum: pd.DataFrame, subtitulo: str, color_accent: str) -> go.Figure:
     COLORES = [
@@ -567,7 +873,7 @@ with st.sidebar:
     st.markdown("**🎯 Perfil de riesgo**")
     perfil_seleccionado = st.selectbox(
         label="Perfil",
-        options=list(PERFILES.keys()),
+        options=list(PERFILES_META.keys()),
         index=1,
         label_visibility="collapsed",
     )
@@ -584,14 +890,22 @@ with st.sidebar:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    with st.expander("⚙️ Personalizar tickers (avanzado)"):
-        tickers_default = ", ".join(PERFILES[perfil_seleccionado]["tickers"])
-        tickers_input = st.text_input(
-            "Tickers (separados por coma):",
-            value=tickers_default,
-            help="Ingresá tickers de Yahoo Finance separados por coma.",
-        )
-        usar_custom = st.checkbox("Usar mis propios tickers", value=False)
+    # Mostrar umbrales de beta del perfil seleccionado
+    umbral = BETA_UMBRALES[perfil_seleccionado]
+    beta_max_display = f"{umbral['max']:.1f}" if umbral["max"] < 10 else "sin límite"
+    st.markdown(f"""
+    <div style='background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25);
+                border-radius:8px; padding:10px 14px; font-size:0.8rem; color:#94a3b8; line-height:1.7;'>
+        <b style='color:#a78bfa;'>Criterio Beta activo:</b><br>
+        β mínimo: <b style='color:#e2e8f0;'>{umbral['min']:.1f}</b><br>
+        β máximo: <b style='color:#e2e8f0;'>{beta_max_display}</b><br>
+        <span style='font-size:0.72rem; color:#475569;'>
+            Acciones seleccionadas del universo de CEDEARs y panel Merval
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -624,22 +938,17 @@ with st.sidebar:
 # PARÁMETROS FINALES
 # ─────────────────────────────────────────────
 
-perfil_info      = PERFILES[perfil_seleccionado]
-dias_atras       = PERIODOS[periodo_seleccionado]
-fecha_fin        = datetime.today()
-fecha_inicio     = fecha_fin - timedelta(days=dias_atras)
-fecha_inicio_str = fecha_inicio.strftime("%Y-%m-%d")
-fecha_fin_str    = fecha_fin.strftime("%Y-%m-%d")
-
-tickers_finales = (
-    [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
-    if usar_custom and tickers_input.strip()
-    else perfil_info["tickers"]
-)
+perfil_info          = PERFILES_META[perfil_seleccionado]
+dias_atras           = PERIODOS[periodo_seleccionado]
+fecha_fin            = datetime.today()
+fecha_inicio         = fecha_fin - timedelta(days=dias_atras)
+fecha_inicio_str     = fecha_inicio.strftime("%Y-%m-%d")
+fecha_fin_str        = fecha_fin.strftime("%Y-%m-%d")
 
 perfil_nombre_limpio = perfil_seleccionado.split(" ", 1)[-1]
 badge_class          = perfil_info["badge_class"]
 color_accent         = perfil_info["color_accent"]
+umbral_activo        = BETA_UMBRALES[perfil_seleccionado]
 
 
 # ─────────────────────────────────────────────
@@ -656,7 +965,7 @@ st.markdown(f"""
         Período analizado: <b style='color:#94a3b8;'>{fecha_inicio.strftime("%d %b %Y")}</b>
         → <b style='color:#94a3b8;'>{fecha_fin.strftime("%d %b %Y")}</b>
         &nbsp;·&nbsp;
-        Activos: <b style='color:#94a3b8;'>{", ".join(tickers_finales)}</b>
+        Universo: <b style='color:#94a3b8;'>CEDEARs + panel Merval ({len(UNIVERSO_ARGENTINA)} activos)</b>
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -668,22 +977,64 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+st.markdown(f"""
+<div class='beta-card'>
+    <b style='color:#a78bfa;'>📐 Metodología de selección por Beta</b><br>
+    Las acciones se seleccionan <b style='color:#e2e8f0;'>dinámicamente</b> en cada sesión
+    evaluando la <b style='color:#e2e8f0;'>Beta</b> de cada activo del universo de CEDEARs
+    y acciones del panel Merval.<br>
+    Para el perfil <b style='color:#e2e8f0;'>{perfil_nombre_limpio}</b>, se incluyen activos con
+    β entre <b style='color:#e2e8f0;'>{umbral_activo["min"]:.1f}</b> y
+    <b style='color:#e2e8f0;'>{"sin límite" if umbral_activo["max"] > 10 else umbral_activo["max"]}</b>.
+    La beta mide cuánto se mueve el activo por cada 1% que se mueve el S&P 500.
+    Si Yahoo Finance no reporta beta, se calcula manualmente con regresión sobre retornos históricos.
+</div>
+""", unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────
-# CARGA DE DATOS
+# SELECCIÓN DINÁMICA POR BETA
 # ─────────────────────────────────────────────
 
-with st.spinner("⏳ Descargando datos de mercado desde Yahoo Finance..."):
-    df_precios = descargar_datos(tickers_finales, fecha_inicio_str, fecha_fin_str)
+with st.spinner("⏳ Evaluando betas del universo de CEDEARs y Merval..."):
+    tickers_finales, betas_dict = seleccionar_tickers_por_beta(
+        perfil_seleccionado,
+        fecha_inicio_str,
+        fecha_fin_str,
+    )
 
-if df_precios.empty:
+if not tickers_finales:
     st.error(
-        "❌ No se pudieron obtener datos. Verificá tu conexión o intentá con otros tickers.",
+        "❌ No se encontraron acciones que cumplan el criterio de Beta para este perfil. "
+        "Intentá con otro período o perfil.",
         icon="🚨",
     )
     st.stop()
 
-df_metricas = calcular_metricas(df_precios)
+st.success(
+    f"✅ Se seleccionaron **{len(tickers_finales)} acciones** "
+    f"con β en rango [{umbral_activo['min']:.1f}, "
+    f"{'∞' if umbral_activo['max'] > 10 else umbral_activo['max']}]: "
+    f"**{', '.join(tickers_finales)}**",
+    icon="📐",
+)
+
+
+# ─────────────────────────────────────────────
+# CARGA DE DATOS DE PRECIOS
+# ─────────────────────────────────────────────
+
+with st.spinner("⏳ Descargando datos de precios desde Yahoo Finance..."):
+    df_precios = descargar_datos(tickers_finales, fecha_inicio_str, fecha_fin_str)
+
+if df_precios.empty:
+    st.error(
+        "❌ No se pudieron obtener datos de precios. Verificá tu conexión.",
+        icon="🚨",
+    )
+    st.stop()
+
+df_metricas = calcular_metricas(df_precios, betas_dict)
 
 cols_num = ["Precio Inicial ($)", "Precio Final ($)", "Rend. Total (%)",
             "CAGR (%)", "Volatilidad Anual (%)", "Ratio Sharpe", "Max Drawdown (%)"]
@@ -721,24 +1072,53 @@ vol_prom        = df_metricas["Volatilidad Anual (%)"].mean()
 sharpe_prom     = df_metricas["Ratio Sharpe"].mean()
 dd_max          = df_metricas["Max Drawdown (%)"].min()
 
-col1, col2, col3, col4, col5 = st.columns(5)
+# Beta promedio del portafolio
+beta_prom = np.mean(list(betas_dict.values())) if betas_dict else 0.0
+
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 with col1:
     cagr_estrella = df_metricas.loc[df_metricas["Ticker"] == ticker_estrella, "CAGR (%)"].values[0]
     st.metric("🏆 Mejor Acción", ticker_estrella, delta=f"CAGR: {cagr_estrella:+.1f}%")
 with col2:
-    st.metric("📈 Rend. Promedio", f"{rend_prom:+.1f}%", delta=f"CAGR: {cagr_prom:+.1f}%")
+    st.metric("📐 Beta Promedio", f"{beta_prom:.2f}", delta="del portafolio", delta_color="off")
 with col3:
-    st.metric("📉 Volatilidad Prom.", f"{vol_prom:.1f}%", delta="anualizada", delta_color="off")
+    st.metric("📈 Rend. Promedio", f"{rend_prom:+.1f}%", delta=f"CAGR: {cagr_prom:+.1f}%")
 with col4:
-    st.metric("⚡ Sharpe Promedio", f"{sharpe_prom:.2f}", delta="rf = 0%", delta_color="off")
+    st.metric("📉 Volatilidad Prom.", f"{vol_prom:.1f}%", delta="anualizada", delta_color="off")
 with col5:
+    st.metric("⚡ Sharpe Promedio", f"{sharpe_prom:.2f}", delta="rf = 0%", delta_color="off")
+with col6:
     st.metric("⚠️ Max Drawdown", f"{dd_max:.1f}%", delta="peor caída del grupo", delta_color="inverse")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 2: GRÁFICO TOP 5 vs S&P 500
+# SECCIÓN 2: GRÁFICO DE BETAS
+# ─────────────────────────────────────────────
+
+st.markdown("### 📐 Beta por Acción — Criterio de Selección")
+
+st.markdown(f"""
+<div class='info-card'>
+    Las siguientes acciones fueron seleccionadas porque su Beta se encuentra en el rango
+    <b style='color:#e2e8f0;'>[{umbral_activo["min"]:.1f} – {"∞" if umbral_activo["max"] > 10 else umbral_activo["max"]}]</b>
+    correspondiente al perfil <b style='color:#e2e8f0;'>{perfil_nombre_limpio}</b>.
+    Todas son operables desde Argentina como <b style='color:#e2e8f0;'>CEDEARs</b> o acciones del panel <b style='color:#e2e8f0;'>Merval</b>.
+</div>
+""", unsafe_allow_html=True)
+
+fig_beta = grafico_beta_perfil(
+    betas_dict,
+    umbral_activo["min"],
+    umbral_activo["max"],
+    color_accent,
+)
+st.plotly_chart(fig_beta, use_container_width=True)
+
+
+# ─────────────────────────────────────────────
+# SECCIÓN 3: GRÁFICO TOP 5 vs S&P 500
 # ─────────────────────────────────────────────
 
 st.markdown("### 📉 Evolución Acumulada — Top 5 vs S&P 500")
@@ -747,8 +1127,8 @@ st.markdown(f"""
 <div class='info-card'>
     El gráfico muestra las <b style='color:#e2e8f0;'>5 acciones con mayor crecimiento anual (CAGR)</b>
     del perfil <b style='color:#e2e8f0;'>{perfil_nombre_limpio}</b>
-    comparadas contra el <b style='color:#e2e8f0;'>S&P 500</b> (línea punteada gris) como referencia de mercado.
-    Una acción que supera la línea del S&P 500 le ganó al mercado en ese período.
+    comparadas contra el <b style='color:#e2e8f0;'>S&P 500</b> (línea punteada gris).
+    Todas las acciones mostradas son operables desde Argentina mediante CEDEARs o Merval.
 </div>
 """, unsafe_allow_html=True)
 
@@ -758,13 +1138,15 @@ st.plotly_chart(fig_evolucion, use_container_width=True)
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 3: TABLA COMPARATIVA
+# SECCIÓN 4: TABLA COMPARATIVA
 # ─────────────────────────────────────────────
 
 st.markdown("### 🗂 Tabla Comparativa de Métricas")
 
 def colorear_tabla(df):
-    styled = df.style
+    cols_mostrar = [c for c in df.columns if c != "Nombre"]
+    df_display   = df[cols_mostrar].copy()
+    styled = df_display.style
 
     def color_rend(val):
         try:
@@ -781,13 +1163,25 @@ def colorear_tabla(df):
         except Exception:
             return ""
 
-    for col in ["Rend. Total (%)", "CAGR (%)", "Max Drawdown (%)"]:
-        if col in df.columns:
-            styled = styled.map(color_rend, subset=[col])
-    if "Ratio Sharpe" in df.columns:
-        styled = styled.map(color_sharpe, subset=["Ratio Sharpe"])
+    def color_beta(val):
+        try:
+            v = float(val)
+            if v < 0.8:   return "color: #34d399"
+            elif v <= 1.2: return "color: #60a5fa"
+            else:          return "color: #f87171"
+        except Exception:
+            return ""
 
-    styled = styled.format({
+    for col in ["Rend. Total (%)", "CAGR (%)", "Max Drawdown (%)"]:
+        if col in df_display.columns:
+            styled = styled.map(color_rend, subset=[col])
+    if "Ratio Sharpe" in df_display.columns:
+        styled = styled.map(color_sharpe, subset=["Ratio Sharpe"])
+    if "Beta" in df_display.columns:
+        styled = styled.map(color_beta, subset=["Beta"])
+
+    fmt = {
+        "Beta":                  "{:.3f}",
         "Precio Inicial ($)":    "${:.2f}",
         "Precio Final ($)":      "${:.2f}",
         "Rend. Total (%)":       "{:+.2f}%",
@@ -795,7 +1189,9 @@ def colorear_tabla(df):
         "Volatilidad Anual (%)": "{:.2f}%",
         "Ratio Sharpe":          "{:.3f}",
         "Max Drawdown (%)":      "{:.2f}%",
-    })
+    }
+    fmt_final = {k: v for k, v in fmt.items() if k in df_display.columns}
+    styled = styled.format(fmt_final)
     styled = styled.set_properties(**{
         "font-family": "DM Mono, monospace",
         "font-size":   "13px",
@@ -803,19 +1199,19 @@ def colorear_tabla(df):
     })
     return styled
 
-st.dataframe(colorear_tabla(df_metricas), use_container_width=True, hide_index=True, height=230)
+st.dataframe(colorear_tabla(df_metricas), use_container_width=True, hide_index=True, height=260)
 
 st.markdown("""
 <div style='font-size:0.75rem; color:#334155; margin-top:4px;'>
-    ℹ️ CAGR = Tasa de crecimiento anual compuesto · Sharpe calculado con Rf = 0% ·
-    Drawdown medido sobre retornos ajustados.
+    ℹ️ Beta: verde &lt; 0.8 (conservador) · azul 0.8–1.2 (moderado) · rojo &gt; 1.2 (agresivo) ·
+    CAGR = Tasa de crecimiento anual compuesto · Sharpe calculado con Rf = 0%.
 </div>
 """, unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 4: ANÁLISIS COMPARATIVO
+# SECCIÓN 5: ANÁLISIS COMPARATIVO
 # ─────────────────────────────────────────────
 
 st.markdown("### 🔬 Análisis Comparativo Avanzado")
@@ -843,7 +1239,7 @@ with col_b:
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 5: CORRELACIONES
+# SECCIÓN 6: CORRELACIONES
 # ─────────────────────────────────────────────
 
 if len(df_precios.columns) > 1:
@@ -884,7 +1280,7 @@ if len(df_precios.columns) > 1:
 
 
 # ─────────────────────────────────────────────
-# SECCIÓN 6: CONCLUSIÓN CON IA (GROQ)
+# SECCIÓN 7: CONCLUSIÓN CON IA (GROQ)
 # ─────────────────────────────────────────────
 
 st.markdown("---")
@@ -895,7 +1291,7 @@ st.markdown("""
     Esta sección usa <b style='color:#e2e8f0;'>Inteligencia Artificial (Groq + LLaMA)</b> para leer
     todos los gráficos y métricas del dashboard y explicarte en lenguaje simple
     <b style='color:#e2e8f0;'>dónde conviene invertir según tu perfil de riesgo</b>,
-    con ejemplos concretos y sin tecnicismos.
+    considerando que todas las opciones son operables desde Argentina mediante CEDEARs o Merval.
 </div>
 """, unsafe_allow_html=True)
 
@@ -913,6 +1309,7 @@ if st.button("✨ Generar análisis con IA", use_container_width=False):
                 df_metricas=df_metricas,
                 top5_tickers=top5_lista,
                 periodo_seleccionado=periodo_seleccionado,
+                betas=betas_dict,
                 api_key=groq_api_key.strip(),
             )
 
@@ -941,6 +1338,6 @@ st.markdown("""
     letter-spacing: 0.05em;
 '>
     PortfolioAI · Seminario de Finanzas e Inteligencia Artificial ·
-    Datos: Yahoo Finance · Solo con fines educativos
+    Datos: Yahoo Finance · Universo: CEDEARs + panel Merval · Solo con fines educativos
 </div>
 """, unsafe_allow_html=True)
